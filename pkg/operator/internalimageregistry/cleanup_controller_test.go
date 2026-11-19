@@ -20,13 +20,11 @@ import (
 )
 
 const (
-	testNamespace                  = "test"
-	testServiceAccountName         = "builder"
-	testImagePullSecretName        = "builder-dockercfg-abc12"
-	internalRegistryPullRef        = "openshift.io/internal-registry-pull-secret-ref"
-	internalRegistryAuthAnnotation = "openshift.io/internal-registry-auth-token.service-account"
-	unrelatedAnnotation            = "example.com/unrelated"
-	unrelatedAnnotationValue       = "keep-me"
+	testNamespace            = "test"
+	testServiceAccountName   = "builder"
+	testImagePullSecretName  = "builder-dockercfg-abc12"
+	unrelatedAnnotation      = "example.com/unrelated"
+	unrelatedAnnotationValue = "keep-me"
 )
 
 // TestCleanupRemovesImagePullSecretReferences verifies the happy path: a successful sync removes
@@ -64,8 +62,8 @@ func TestCleanupRemovesImagePullSecretReferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get updated service account: %v", err)
 	}
-	if _, ok := updated.Annotations[internalRegistryPullRef]; ok {
-		t.Errorf("expected annotation %q to be removed, but it is still present", internalRegistryPullRef)
+	if _, ok := updated.Annotations[internalRegistryPullSecretRefAnnotation]; ok {
+		t.Errorf("expected annotation %q to be removed, but it is still present", internalRegistryPullSecretRefAnnotation)
 	}
 	if serviceAccountReferencesSecret(updated, testImagePullSecretName) {
 		t.Errorf("expected service account to no longer reference pull secret %q", testImagePullSecretName)
@@ -113,8 +111,8 @@ func TestCleanupRemovesStaleAnnotationWhenImagePullSecretIsGone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get updated service account: %v", err)
 	}
-	if _, ok := updated.Annotations[internalRegistryPullRef]; ok {
-		t.Errorf("expected annotation %q to be removed, but it is still present", internalRegistryPullRef)
+	if _, ok := updated.Annotations[internalRegistryPullSecretRefAnnotation]; ok {
+		t.Errorf("expected annotation %q to be removed, but it is still present", internalRegistryPullSecretRefAnnotation)
 	}
 	// Only the controller's own annotation may be removed.
 	if got := updated.Annotations[unrelatedAnnotation]; got != unrelatedAnnotationValue {
@@ -238,7 +236,7 @@ func newServiceAccountWithInternalRegistryPullSecret(namespace, name, secretName
 			Name:      name,
 			Namespace: namespace,
 			Annotations: map[string]string{
-				internalRegistryPullRef: secretName,
+				internalRegistryPullSecretRefAnnotation: secretName,
 			},
 		},
 		ImagePullSecrets: []corev1.LocalObjectReference{
@@ -260,8 +258,8 @@ func newServiceAccountWithStaleInternalRegistryPullSecretAnnotation(namespace, n
 			Name:      name,
 			Namespace: namespace,
 			Annotations: map[string]string{
-				internalRegistryPullRef: secretName,
-				unrelatedAnnotation:     unrelatedAnnotationValue,
+				internalRegistryPullSecretRefAnnotation: secretName,
+				unrelatedAnnotation:                     unrelatedAnnotationValue,
 			},
 		},
 	}
@@ -276,7 +274,7 @@ func newManagedImagePullSecret(namespace, name, serviceAccountName string) *core
 			Name:      name,
 			Namespace: namespace,
 			Annotations: map[string]string{
-				internalRegistryAuthAnnotation: serviceAccountName,
+				internalRegistryAuthTokenAnnotation: serviceAccountName,
 			},
 			CreationTimestamp: metav1.NewTime(time.Now().Add(-time.Hour)),
 		},
